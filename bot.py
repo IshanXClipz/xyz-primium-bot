@@ -7,8 +7,9 @@ import threading
 import random
 import string
 
-# Render / System Environment Variable check karega, nahi toh default TOKEN use karega
-TOKEN = os.getenv('BOT_TOKEN', '8926176361:AAF_F4KQlGv-cn0WGTUkMh1uiCz43KwrxJQ')
+# Code me se token hata diya hai taaki GitHub security error na de
+# Token ab Render ke Environment Variable se safe tarike se fetch hoga
+TOKEN = os.getenv('BOT_TOKEN')
 ADMIN_USERNAME = 'ISHAN_XYZ'
 CHANNEL_LINK = 'https://t.me/XYZHacksHud'
 UPI_ID = '6289978153@fam'
@@ -176,6 +177,234 @@ TEXTS = {
         "invalid_username": "⚠️ Username obosshoi '@' diye shuru hote hobe (jemon: @yourname):",
         "login_success": "✅ {username} hisebe safolyo bhabe login hoyeche!",
         "main_title": (
+            "💎 VIP PROJECTS\n"
+            "⚙️ VIP CONFIGS\n"
+            "⚡ INSTANT DELIVERY\n"
+            "🔒 SECURE PAYMENTS\n\n"
+            "────────────────────────\n\n"
+            "👤 USERNAME : {username}\n"
+            "🆔 ID : {user_id}\n"
+            "💰 BALANCE : {balance:.1f} IC\n"
+            "🔱 EXCHANGE RATE : ₹1 INR = 1.2 IC\n"
+            "💵 RATES: ₹10 = 12.0 IC | ₹20 = 24.0 IC\n\n"
+            "────────────────────────\n\n"
+            "🚀 SHURU KORTE BUY PROJECT BA CONFIG TAP KORUN!"
+        ),
+        "btn_buy_proj": "⭐ BUY PROJECT",
+        "btn_buy_files": "⭐ BUY CONFIG",
+        "btn_buy_mods": "⭐ BUY MOD APK'S",
+        "btn_add_bal": "💳 ADD BALANCE",
+        "btn_referral": "🎁 REFER & EARN",
+        "btn_orders": "📦 YOUR ORDERS",
+        "btn_channel": "📢 OFFICIAL CHANNEL",
+        "btn_support": "📞 CUSTOMER SUPPORT",
+        "btn_back": "⬅️ Main Menu te Phire Jan",
+        "no_items": "⚠️ Ekhon kono {category} available nei.",
+        "no_orders": "📦 Apni ekhono kono item korenni.",
+        "orders_title": "📦 APNAR KHAREDA ORDERS:\nJekono somoy re-download korar jonno nicher button e tap korun!",
+        "item_not_found": "❌ Item paoya jayni!",
+        "not_enough_ic": "⚠️ Apnar kache porjapt IC balance nei!\nProyojon: {price} IC | Apnar Balance: {balance:.1f} IC\n\nDoya kore ADD BALANCE option diye balance jog korun.",
+        "buy_success": "🎉 PURCHASE SUCCESSFUL!\n\n📦 Item: {name}\n💰 Deducted: {price} IC\n📦 Baki Balance: {new_balance:.1f} IC\n\nApnar file niche pathano holo! (15 min pore auto-delete hobe)",
+        "add_bal_text": "💳 ADD BALANCE (MINIMUM ₹10 INR)\n\n🔱 Exchange Rate: ₹1 INR = 1.2 IC\n💵 RATES:\n• ₹10 INR = 12.0 IC\n• ₹20 INR = 24.0 IC\n📱 FamPay UPI ID: {upi}\n\n👉 Uporer QR code scan korun athoba UPI ID te payment korun (Min ₹10).\nAfter payment, send payment screenshot to admin for ic balance top-up!",
+        "support_text": "📞 CUSTOMER SUPPORT\n\nApnar kono prosno thakle ba payment/product niye sahajjo lagle nicher admin er sathe jogajog korun:\n\n👉 Admin Username: @{admin}",
+        "channel_text": "📢 OFFICIAL CHANNEL\n\nRegular update, free config ebong notun project pete amader official channel join korun:\n\n👉 Channel Link: {channel}",
+        "btn_chat_admin": "💬 Admin er sathe kotha bolun",
+        "btn_visit_channel": "📢 Channel Visit korun",
+        "pay_title": "💳 PAYMENT CHECKOUT (FAMPAY)\n\n📦 Item: {name}\n💰 Amount to Pay: {price} IC (₹{inr_price} INR)\n\n📱 FamPay UPI ID: {upi}\n\n👉 Uporer QR code scan korun athoba FamPay ID te payment korun.\nAfter payment, send payment screenshot to admin for ic balance top-up!",
+        "btn_send_ss": "📞 SEND PAYMENT SCREENSHOT TO ADMIN"
+    }
+}
+
+def get_lang(user_id):
+    return db.get("user_languages", {}).get(str(user_id), "EN")
+
+def is_admin(user):
+    return user.username == ADMIN_USERNAME
+
+def is_banned(user):
+    username = f"@{user.username}" if user.username else ""
+    user_id = user.id
+    banned_list = db.get("banned_users", [])
+    return (username.lower() in [str(b).lower() for b in banned_list]) or (user_id in banned_list) or (str(user_id) in banned_list)
+
+def schedule_file_deletion(chat_id, message_id):
+    def delete_msg():
+        time.sleep(900)
+        try:
+            bot.delete_message(chat_id, message_id)
+        except Exception:
+            pass
+    threading.Thread(target=delete_msg, daemon=True).start()
+
+# --- ADMIN COMMANDS ---
+
+@bot.message_handler(commands=['ic'])
+def admin_ic_command(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ You are not authorized.")
+    
+    parts = message.text.strip().split()
+    if len(parts) != 3:
+        return bot.reply_to(message, "⚠️ Usage: /ic @username amount\nExample: /ic @BRUTALMOON 12.2")
+    
+    target_username = parts[1].strip()
+    if not target_username.startswith('@'):
+        target_username = '@' + target_username
+        
+    try:
+        amount = float(parts[2])
+    except ValueError:
+        return bot.reply_to(message, "⚠️ Invalid amount format! Enter numbers only.")
+    
+    target_user_key = None
+    
+    for uid, uname in db.get("registered_users", {}).items():
+        if uname.lower() == target_username.lower():
+            target_user_key = uid
+            break
+            
+    if not target_user_key:
+        target_user_key = target_username.lower()
+        db.setdefault("registered_users", {})[target_user_key] = target_username
+
+    current_bal = float(db.get("user_balances", {}).get(target_user_key, 0.0))
+    new_bal = round(current_bal + amount, 1)
+    
+    db.setdefault("user_balances", {})[target_user_key] = new_bal
+    save_db()
+    
+    reply_text = f"✅ SUCCESS!\n\n👤 User: {target_username}\n➕ Added: {amount} IC\n💰 Total Balance: {new_bal:.1f} IC"
+    bot.reply_to(message, reply_text)
+
+@bot.message_handler(commands=['totalic', 'sentic'])
+def admin_totalic_command(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ You are not authorized.")
+    
+    total_sent = sum(float(val) for val in db.get("user_balances", {}).values())
+    bot.reply_to(message, f"📈 **TOTAL IC SENT TO USERS:** {total_sent:.1f} IC", parse_mode='Markdown')
+
+@bot.message_handler(commands=['icuse'])
+def admin_icuse_command(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ You are not authorized.")
+    
+    total = db.get("total_earnings", 0.0)
+    bot.reply_to(message, f"📉 TOTAL IC SPENT BY USERS: {total:.1f} IC")
+
+@bot.message_handler(commands=['upload'])
+def admin_upload_start(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ You are not authorized.")
+    
+    msg = bot.reply_to(message, "📦 Enter Category:\n\nOptions: Projects, Files, or ModApks")
+    bot.register_next_step_handler(msg, process_upload_category)
+
+def process_upload_category(message):
+    cat = message.text.strip()
+    if cat not in ["Projects", "Files", "ModApks"]:
+        msg = bot.reply_to(message, "⚠️ Invalid Category! Send Projects, Files, or ModApks:")
+        bot.register_next_step_handler(msg, process_upload_category)
+        return
+    
+    upload_temp[message.from_user.id] = {"category": cat}
+    msg = bot.reply_to(message, f"✅ Category set to {cat}.\n\n👉 Now enter Item Name:")
+    bot.register_next_step_handler(msg, process_upload_name)
+
+def process_upload_name(message):
+    name = message.text.strip()
+    upload_temp[message.from_user.id]["name"] = name
+    msg = bot.reply_to(message, "👉 Now enter Price in IC (e.g., 10.0):")
+    bot.register_next_step_handler(msg, process_upload_price)
+
+def process_upload_price(message):
+    try:
+        price = float(message.text.strip())
+    except ValueError:
+        msg = bot.reply_to(message, "⚠️ Invalid Price! Enter a valid number:")
+        bot.register_next_step_handler(msg, process_upload_price)
+        return
+    
+    upload_temp[message.from_user.id]["price"] = price
+    msg = bot.reply_to(message, "👉 Now send the Telegram File_ID or Download Link/Text to be delivered upon purchase:")
+    bot.register_next_step_handler(msg, process_upload_file)
+
+def process_upload_file(message):
+    file_id = message.text.strip() if message.text else (message.document.file_id if message.document else None)
+    
+    if not file_id:
+        msg = bot.reply_to(message, "⚠️ Invalid input! Please send File_ID or text link:")
+        bot.register_next_step_handler(msg, process_upload_file)
+        return
+
+    data = upload_temp[message.from_user.id]
+    cat = data["category"]
+    cat_key = "projects" if cat == "Projects" else ("files" if cat == "Files" else "mod_apks")
+    
+    item_id = str(len(db[cat_key]) + 1)
+    new_item = {
+        "id": item_id,
+        "name": data["name"],
+        "price": data["price"],
+        "file_id": file_id
+    }
+    
+    db[cat_key].append(new_item)
+    save_db()
+    del upload_temp[message.from_user.id]
+    
+    bot.reply_to(message, f"🎉 Successfully Uploaded!\n\n📦 Category: {cat}\n📛 Name: {new_item['name']}\n💰 Price: {data['price']} IC\n📄 File Attached!")
+
+@bot.message_handler(commands=['delete'])
+def admin_delete_start(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ You are not authorized.")
+    
+    text = "🗑 CURRENT AVAILABLE ITEMS:\n\n"
+    has_items = False
+    
+    for cat_name, cat_key in [("Projects", "projects"), ("Files", "files"), ("ModApks", "mod_apks")]:
+        items = db.get(cat_key, [])
+        if items:
+            has_items = True
+            text += f"📂 {cat_name}:\n"
+            for item in items:
+                text += f"• {item['name']} ({item['price']} IC)\n"
+            text += "\n"
+            
+    if not has_items:
+        return bot.reply_to(message, "⚠️ No items available in database to delete!")
+        
+    msg = bot.reply_to(message, text + "👉 Send the exact NAME of the Project / File / ModApk to delete:")
+    bot.register_next_step_handler(msg, process_delete_item_by_name)
+
+def process_delete_item_by_name(message):
+    item_name = message.text.strip()
+    deleted_item = None
+    
+    for cat_key in ["projects", "files", "mod_apks"]:
+        for item in list(db[cat_key]):
+            if item["name"].lower() == item_name.lower():
+                deleted_item = item["name"]
+                db[cat_key].remove(item)
+                break
+        if deleted_item:
+            break
+                
+    if deleted_item:
+        save_db()
+        bot.reply_to(message, f"✅ {deleted_item} has been deleted successfully from database!")
+    else:
+        bot.reply_to(message, f"❌ Item named {item_name} not found!")
+
+@bot.message_handler(commands=['ban'])
+def admin_ban_command(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ You are not authorized.")
+    
+    parts = message.text.strip().split()
+    if len(parts) != 2:
+        return bot.reply_to(message, "⚠️ Usage: /ban @username or /ban user_id\nE  "main_title": (
             "💎 VIP PROJECTS\n"
             "⚙️ VIP CONFIGS\n"
             "⚡ INSTANT DELIVERY\n"
