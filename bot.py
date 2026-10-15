@@ -29,7 +29,7 @@ keep_alive()
 
 # --- ENVIRONMENT VARIABLES & FIREBASE CONFIG ---
 TOKEN = os.getenv('BOT_TOKEN')
-ADMIN_USERNAME = 'ISHAN_XYZ'  # Fixed case-insensitive check below
+ADMIN_USERNAME = 'ISHAN_XYZ'
 CHANNEL_LINK = 'https://t.me/XYZHacksHud'
 UPI_ID = '6289978153@fam'
 FIREBASE_URL = os.getenv('FIREBASE_URL')
@@ -114,6 +114,8 @@ TEXTS = {
         "promo_applied": "🎉 Promo code applied! You received +5.4 IC welcome bonus!",
         "ask_username": "👋 Send your Telegram username starting with '@' to login:",
         "invalid_username": "⚠️ Username must start with '@' (e.g., @yourname):",
+        "mismatch_username": "❌ Fake Login Detected!\n\nThe username you typed ({input_user}) does NOT match your actual Telegram account username (@{real_user}). Please enter your own username!",
+        "no_tg_username": "⚠️ Your Telegram account does not have a username set!\n\nPlease set a username in your Telegram Settings first, then try logging in.",
         "login_success": "✅ Login successful as {username}!",
         "main_title": (
             "💎 VIP PROJECTS\n"
@@ -160,6 +162,8 @@ TEXTS = {
         "promo_applied": "🎉 Promo code apply ho gaya! Aapko +5.4 IC Welcome Bonus mila!",
         "ask_username": "👋 Login karne ke liye apna Telegram username '@' se shuru karke bhejein:",
         "invalid_username": "⚠️ Username '@' se shuru hona chahiye (jaise: @yourname):",
+        "mismatch_username": "❌ Fake Login Detected!\n\nAapka diya username ({input_user}) aapke asli Telegram username (@{real_user}) se match nahi kar raha. Kripya apna hi username likhein!",
+        "no_tg_username": "⚠️ Aapke Telegram account me koi username set nahi hai!\n\nPehle Telegram Settings me jaakar username set karein, phir login karein.",
         "login_success": "✅ {username} ke roop me safal login ho gaya!",
         "main_title": (
             "💎 VIP PROJECTS\n"
@@ -201,6 +205,194 @@ TEXTS = {
     "BN": {
         "welcome": "👋 Swagotom {name}!\n\n🌐 Bhasha নির্বাচন korun:\n\n🔹 English for E\n🔸 Hindi for H\n🔸 Bengali for B",
         "lang_set": "✅ Bangla (Banglish) bhasha set hoye geche!",
+        "ask_promo": "🎁 6-Digit Promo Code dain (ba 'SKIP' likhun):",
+        "invalid_promo": "❌ Bhul Promo Code! Sothik 6-digit code dain ba 'SKIP' likhun:",
+        "promo_applied": "🎉 Promo code apply hoye geche! Apni +5.4 IC Welcome Bonus peyechen!",
+        "ask_username": "👋 Login korar jonno apnar Telegram username '@' diye shuru kore pathan:",
+        "invalid_username": "⚠️ Username obosshoi '@' diye shuru hote hobe (jemon: @yourname):",
+        "mismatch_username": "❌ Fake Login Detected!\n\nApnar deoya username ({input_user}) apnar asol Telegram username (@{real_user}) er sathe match korche na. Doya kore apnar nijer username dain!",
+        "no_tg_username": "⚠️ Apnar Telegram account e kono username set kora nei!\n\nProthome Telegram Settings e giye username set korun, tarpor login korun.",
+        "login_success": "✅ {username} hisebe safolyo bhabe login hoyeche!",
+        "main_title": (
+            "💎 VIP PROJECTS\n"
+            "⚙️ VIP CONFIGS\n"
+            "⚡ INSTANT DELIVERY\n"
+            "🔒 SECURE PAYMENTS\n\n"
+            "────────────────────────\n\n"
+            "👤 USERNAME : {username}\n"
+            "🆔 ID : {user_id}\n"
+            "💰 BALANCE : {balance:.1f} IC\n"
+            "🔱 EXCHANGE RATE : ₹1 INR = 1.2 IC\n"
+            "💵 RATES: ₹10 = 12.0 IC | ₹20 = 24.0 IC\n\n"
+            "────────────────────────\n\n"
+            "🚀 SHURU KORTE BUY PROJECT BA CONFIG TAP KORUN!"
+        ),
+        "btn_buy_proj": "⭐ BUY PROJECT",
+        "btn_buy_files": "⭐ BUY CONFIG",
+        "btn_buy_mods": "⭐ BUY MOD APK'S",
+        "btn_add_bal": "💳 ADD BALANCE",
+        "btn_referral": "🎁 REFER & EARN",
+        "btn_orders": "📦 YOUR ORDERS",
+        "btn_channel": "📢 OFFICIAL CHANNEL",
+        "btn_support": "📞 CUSTOMER SUPPORT",
+        "btn_back": "⬅️ Main Menu te Phire Jan",
+        "no_items": "⚠️ Ekhon kono {category} available nei.",
+        "no_orders": "📦 Apni ekhono kono item korenni.",
+        "orders_title": "📦 APNAR KHAREDA ORDERS:\nJekono somoy re-download korar jonno nicher button e tap korun!",
+        "item_not_found": "❌ Item paoya jayni!",
+        "not_enough_ic": "⚠️ Apnar kache porjapt IC balance nei!\nProyojon: {price} IC | Apnar Balance: {balance:.1f} IC\n\nDoya kore ADD BALANCE option diye balance jog korun.",
+        "buy_success": "🎉 PURCHASE SUCCESSFUL!\n\n📦 Item: {name}\n💰 Deducted: {price} IC\n📦 Baki Balance: {new_balance:.1f} IC\n\nApnar file niche pathano holo! (15 min pore auto-delete hobe)",
+        "add_bal_text": "💳 ADD BALANCE (MINIMUM ₹10 INR)\n\n🔱 Exchange Rate: ₹1 INR = 1.2 IC\n💵 RATES:\n• ₹10 INR = 12.0 IC\n• ₹20 INR = 24.0 IC\n📱 FamPay UPI ID: {upi}\n\n👉 Uporer QR code scan korun athoba UPI ID te payment korun (Min ₹10).\nAfter payment, send payment screenshot to admin for ic balance top-up!",
+        "support_text": "📞 CUSTOMER SUPPORT\n\nApnar kono prosno thakle ba payment/product niye sahajjo lagle nicher admin er sathe jogajog korun:\n\n👉 Admin Username: @{admin}",
+        "channel_text": "📢 OFFICIAL CHANNEL\n\nRegular update, free config ebong notun project pete amader official channel join korun:\n\n👉 Channel Link: {channel}",
+        "btn_chat_admin": "💬 Admin er sathe kotha bolun",
+        "btn_visit_channel": "📢 Channel Visit korun",
+        "pay_title": "💳 PAYMENT CHECKOUT (FAMPAY)\n\n📦 Item: {name}\n💰 Amount to Pay: {price} IC (₹{inr_price} INR)\n\n📱 FamPay UPI ID: {upi}\n\n👉 Uporer QR code scan korun athoba FamPay ID te payment korun.\nAfter payment, send payment screenshot to admin for ic balance top-up!",
+        "btn_send_ss": "📞 SEND PAYMENT SCREENSHOT TO ADMIN"
+    }
+}
+
+def get_lang(user_id):
+    return db.get("user_languages", {}).get(str(user_id), "EN")
+
+def is_admin(user):
+    if not user.username:
+        return False
+    return user.username.replace('@', '').strip().lower() == ADMIN_USERNAME.replace('@', '').strip().lower()
+
+def is_banned(user):
+    username = f"@{user.username}" if user.username else ""
+    user_id = user.id
+    banned_list = db.get("banned_users", [])
+    return (username.lower() in [str(b).lower() for b in banned_list]) or (user_id in banned_list) or (str(user_id) in banned_list)
+
+def schedule_file_deletion(chat_id, message_id):
+    def delete_msg():
+        time.sleep(900)
+        try:
+            bot.delete_message(chat_id, message_id)
+        except Exception:
+            pass
+    threading.Thread(target=delete_msg, daemon=True).start()
+
+# --- ADMIN COMMANDS ---
+
+@bot.message_handler(commands=['toggle_bot'])
+def admin_toggle_bot_command(message):
+    global is_bot_active
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, f"❌ Access Denied! Admin username is set to @{ADMIN_USERNAME}.")
+    is_bot_active = not is_bot_active
+    status = "ONLINE & ACTIVE ✅" if is_bot_active else "OFFLINE / MAINTENANCE ❌"
+    bot.reply_to(message, f"🤖 Bot Status updated: {status}")
+
+@bot.message_handler(commands=['ic'])
+def admin_ic_command(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ Access Denied!")
+    
+    parts = message.text.strip().split()
+    if len(parts) != 3:
+        return bot.reply_to(message, "⚠️ Usage: /ic @username amount\nExample: /ic @BRUTALMOON 12.2")
+    
+    target_username = parts[1].strip()
+    if not target_username.startswith('@'):
+        target_username = '@' + target_username
+        
+    try:
+        amount = float(parts[2])
+    except ValueError:
+        return bot.reply_to(message, "⚠️ Invalid amount format! Enter numbers only.")
+    
+    target_user_key = None
+    for uid, uname in db.get("registered_users", {}).items():
+        if uname.lower() == target_username.lower():
+            target_user_key = uid
+            break
+            
+    if not target_user_key:
+        target_user_key = target_username.lower()
+        db.setdefault("registered_users", {})[target_user_key] = target_username
+
+    current_bal = float(db.get("user_balances", {}).get(target_user_key, 0.0))
+    new_bal = round(current_bal + amount, 1)
+    
+    db.setdefault("user_balances", {})[target_user_key] = new_bal
+    save_db()
+    
+    reply_text = f"✅ SUCCESS!\n\n👤 User: {target_username}\n➕ Added: {amount} IC\n💰 Total Balance: {new_bal:.1f} IC"
+    bot.reply_to(message, reply_text)
+
+@bot.message_handler(commands=['deduct', 'minus'])
+def admin_deduct_command(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ Access Denied!")
+    
+    parts = message.text.strip().split()
+    if len(parts) != 3:
+        return bot.reply_to(message, "⚠️ Usage: /deduct @username amount\nExample: /deduct @BRUTALMOON 10.0")
+    
+    target_username = parts[1].strip()
+    if not target_username.startswith('@'):
+        target_username = '@' + target_username
+        
+    try:
+        amount = float(parts[2])
+    except ValueError:
+        return bot.reply_to(message, "⚠️ Invalid amount format!")
+    
+    target_user_key = None
+    for uid, uname in db.get("registered_users", {}).items():
+        if uname.lower() == target_username.lower():
+            target_user_key = uid
+            break
+            
+    if not target_user_key:
+        return bot.reply_to(message, f"❌ User {target_username} not found in registered users!")
+
+    current_bal = float(db.get("user_balances", {}).get(target_user_key, 0.0))
+    new_bal = round(max(0.0, current_bal - amount), 1)
+    
+    db.setdefault("user_balances", {})[target_user_key] = new_bal
+    save_db()
+    
+    reply_text = f"✅ DEDUCTION SUCCESSFUL!\n\n👤 User: {target_username}\n➖ Deducted: {amount} IC\n💰 Remaining Balance: {new_bal:.1f} IC"
+    bot.reply_to(message, reply_text)
+
+@bot.message_handler(commands=['totalic', 'sentic'])
+def admin_totalic_command(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ Access Denied!")
+    total_sent = sum(float(val) for val in db.get("user_balances", {}).values())
+    bot.reply_to(message, f"📈 **TOTAL IC SENT TO USERS:** {total_sent:.1f} IC", parse_mode='Markdown')
+
+@bot.message_handler(commands=['icuse'])
+def admin_icuse_command(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ Access Denied!")
+    total = db.get("total_earnings", 0.0)
+    bot.reply_to(message, f"📉 TOTAL IC SPENT BY USERS: {total:.1f} IC")
+
+@bot.message_handler(commands=['upload'])
+def admin_upload_start(message):
+    if not is_admin(message.from_user):
+        return bot.reply_to(message, "❌ Access Denied!")
+    msg = bot.reply_to(message, "📦 Enter Category:\n\nOptions: Projects, Files, or ModApks")
+    bot.register_next_step_handler(msg, process_upload_category)
+
+def process_upload_category(message):
+    cat = message.text.strip()
+    if cat not in ["Projects", "Files", "ModApks"]:
+        msg = bot.reply_to(message, "⚠️ Invalid Category! Send Projects, Files, or ModApks:")
+        bot.register_next_step_handler(msg, process_upload_category)
+        return
+    upload_temp[message.from_user.id] = {"category": cat}
+    msg = bot.reply_to(message, f"✅ Category set to {cat}.\n\n👉 Now enter Item Name:")
+    bot.register_next_step_handler(msg, process_upload_name)
+
+def process_upload_name(message):
+    name = message.text.strip()
+    upload_temp[message.from_user.id]["name"] = nagla (Banglish) bhasha set hoye geche!",
         "ask_promo": "🎁 6-Digit Promo Code dain (ba 'SKIP' likhun):",
         "invalid_promo": "❌ Bhul Promo Code! Sothik 6-digit code dain ba 'SKIP' likhun:",
         "promo_applied": "🎉 Promo code apply hoye geche! Apni +5.4 IC Welcome Bonus peyechen!",
