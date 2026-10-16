@@ -1,207 +1,190 @@
+import os
+import json
+import threading
+from flask import Flask
 import telebot
 from telebot import types
-import json
-import os
-import time
-import threading
-import random
-import string
-from flask import Flask
 import firebase_admin
-from firebase_admin import credentials, db as firebase_db
+from firebase_admin import credentials, db
 
-# --- FLASK KEEP ALIVE SERVER (FOR UPTIMEROBOT 24/7) ---
+# --- FLASK KEEP-ALIVE SERVER (For UptimeRobot 24/7) ---
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is Alive & Running 24/7!"
+    return "Bot is active and running 24/7!"
 
 def run_flask():
-    port = int(os.getenv("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
 def keep_alive():
-    t = threading.Thread(target=run_flask, daemon=True)
+    t = threading.Thread(target=run_flask)
+    t.daemon = True
     t.start()
 
-keep_alive()
+# --- CONFIGURATION & ENVIRONMENT VARIABLES ---
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
+FIREBASE_URL = os.environ.get('FIREBASE_URL')
+FIREBASE_CREDS_STR = os.environ.get('FIREBASE_CREDS')
 
-# --- ENVIRONMENT VARIABLES & FIREBASE CONFIG ---
-TOKEN = os.getenv('BOT_TOKEN')
-ADMIN_USERNAME = 'ISHAN_XYZ'
-CHANNEL_LINK = 'https://t.me/XYZHacksHud'
-UPI_ID = '6289978153@fam'
-FIREBASE_URL = os.getenv('FIREBASE_URL')
-FIREBASE_CREDS = os.getenv('FIREBASE_CREDS')
+if not BOT_TOKEN or not FIREBASE_URL or not FIREBASE_CREDS_STR:
+    print("❌ Error: Missing Environment Variables!")
+    exit(1)
 
-fb_ref = None
-if FIREBASE_CREDS and FIREBASE_URL:
+# Initialize Firebase
+try:
+    creds_dict = json.loads(FIREBASE_CREDS_STR)
+    cred = credentials.Certificate(creds_dict)
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(cred, {
+            'databaseURL': FIREBASE_URL
+        })
+    print("🔥 Firebase Connected Successfully!")
+except Exception as e:
+    print(f"❌ Firebase Connection Error: {e}")
+    exit(1)
+
+bot = telebot.TeleBot(BOT_TOKEN)
+
+# Admin Username Configuration (Case-insensitive check)
+ADMIN_USERNAME = "ISHAN_XYZ"
+
+def is_admin(username):
+    if not username:
+        return False
+    return username.strip().lstrip('@').lower() == ADMIN_USERNAME.lower()
+
+# --- BOT COMMANDS & HANDLERS ---
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    user = message.from_user
+    username = user.username if user.username else "NoUsername"
+    
+    # Save/Check user in Firebase
+    ref = db.reference(f'users/{user.id}')
+    user_data = ref.get()
+    
+    if not user_data:
+        ref.set({
+            'user_id': user.id,
+            'username': username,
+            'ic_balance': 5.4, # Welcome bonus +5.4 IC
+            'referred_by': None
+        })
+    
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    b1 = types.InlineKeyboardButton("📦 Products", callback_data="products")
+    b2 = types.InlineKeyboardButton("💰 My Wallet", callback_data="wallet")
+    b3 = types.InlineKeyboardButton("🎁 Referral / Promo", callback_data="referral")
+    b4 = types.InlineKeyboardButton("📞 Support", url="https://t.me/ISHAN_XYZ")
+    markup.add(b1, b2, b3, b4)
+    
+    welcome_text = (
+        f"🤖 **XYZ PREMIUM BOT** 🤖\n\n"
+        f"🔥 **PREMIUM DIGITAL BOT** 🔥\n\n"
+        f"📦 Premium Projects & Files\n"
+        f"⚡ Fast & Instant Delivery\n"
+        f"🟢 24/7 Hours Online Active\n"
+        f"💵 Easy & Secure Payment\n"
+        f"💰 Affordable Prices\n\n"
+        f"Welcome @{username}! Choose an option below 👇"
+    )
+    bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_query(call):
+    user_id = call.from_user.id
+    
+    if call.data == "wallet":
+        ref = db.reference(f'users/{user_id}')
+        user_data = ref.get()
+        balance = user_data.get('ic_balance', 0.0) if user_data else 0.0
+        
+        text = f"💰 **Your Wallet Balance**\n\n💎 IC Balance: `{balance} IC`\n💳 Exchange Rate: ₹1 INR = 1.2 IC"
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+        
+    elif call.data == "referral":
+        # Promo code only (Link removed as requested)
+        promo_code = f"XYZ{user_id}"
+        text = (
+            f"🎁 **Referral & Promo Program**\n\n"
+            f"Share your exclusive Promo Code with friends to earn instant IC bonuses!\n\n"
+            f"🏷️ **Your Promo Code:** `{promo_code}`\n\n"
+            f"✨ Welcome Bonus: +5.4 IC\n"
+            f"🚀 Instant Referral Bonus: +6.0 IC"
+        )
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+        
+    elif call.data == "products":
+        text = "📦 **Available Premium Products & Files**\n\nSelect a category or item to purchase:"
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="back_home"))
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+        
+    elif call.data == "back_home":
+        user = call.from_user
+        username = user.username if user.username else "User"
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        b1 = types.InlineKeyboardButton("📦 Products", callback_data="products")
+        b2 = types.InlineKeyboardButton("💰 My Wallet", callback_data="wallet")
+        b3 = types.InlineKeyboardButton("🎁 Referral / Promo", callback_data="referral")
+        b4 = types.InlineKeyboardButton("📞 Support", url="https://t.me/ISHAN_XYZ")
+        markup.add(b1, b2, b3, b4)
+        
+        welcome_text = f"🤖 **XYZ PREMIUM BOT** 🤖\n\nWelcome back, @{username}! Choose an option below 👇"
+        bot.edit_message_text(welcome_text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+
+# --- ADMIN COMMANDS ---
+
+@bot.message_handler(commands=['ic', 'deduct', 'minus'])
+def admin_ic_handler(message):
+    user = message.from_user
+    if not is_admin(user.username):
+        bot.reply_to(message, "❌ You are not authorized to use admin commands!")
+        return
+        
+    parts = message.text.split()
+    if len(parts) < 3:
+        bot.reply_to(message, "⚠️ Usage: `/deduct <user_id> <amount>` or `/ic <user_id> <amount>`", parse_mode="Markdown")
+        return
+        
+    target_user_id = parts[1]
     try:
-        cred_dict = json.loads(FIREBASE_CREDS)
-        cred = credentials.Certificate(cred_dict)
-        firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_URL})
-        fb_ref = firebase_db.reference('/')
-        print("Firebase Database Connected Successfully via Env!")
-    except Exception as e:
-        print(f"Firebase Env Init Error: {e}")
+        amount = float(parts[2])
+    except ValueError:
+        bot.reply_to(message, "⚠️ Invalid amount specified!")
+        return
+        
+    ref = db.reference(f'users/{target_user_id}')
+    user_data = ref.get()
+    
+    if not user_data:
+        bot.reply_to(message, "❌ User not found in database!")
+        return
+        
+    current_balance = user_data.get('ic_balance', 0.0)
+    
+    if parts[0].lower() in ['/deduct', '/minus']:
+        new_balance = max(0.0, current_balance - amount)
+        action_type = "Deducted"
+    else:
+        new_balance = current_balance + amount
+        action_type = "Added"
+        
+    ref.update({'ic_balance': new_balance})
+    bot.reply_to(message, f"✅ Successfully {action_type} {amount} IC. New Balance for {target_user_id}: `{new_balance} IC`", parse_mode="Markdown")
 
-if not fb_ref and os.path.exists('firebase_creds.json'):
-    try:
-        cred = credentials.Certificate('firebase_creds.json')
-        firebase_admin.initialize_app(cred, {'databaseURL': FIREBASE_URL})
-        fb_ref = firebase_db.reference('/')
-        print("Firebase Database Connected Successfully via File!")
-    except Exception as e:
-        print(f"Firebase File Init Error: {e}")
-
-bot = telebot.TeleBot(TOKEN, threaded=False)
-
-def load_db():
-    default_db = {
-        "projects": [],
-        "files": [],
-        "mod_apks": [],
-        "registered_users": {},
-        "user_balances": {},
-        "user_languages": {},
-        "total_earnings": 0.0,
-        "banned_users": [],
-        "user_orders": {},
-        "user_promo_codes": {},
-        "promo_code_map": {},
-        "referred_by": {},
-        "has_purchased": {},
-        "user_ref_earnings": {}
-    }
-    if fb_ref:
-        try:
-            data = fb_ref.get()
-            if data:
-                for k, v in default_db.items():
-                    if k in data:
-                        default_db[k] = data[k]
-        except Exception as e:
-            print(f"Firebase Read Error: {e}")
-    return default_db
-
-db = load_db()
-
-def save_db():
-    if fb_ref:
-        try:
-            fb_ref.set(db)
-        except Exception as e:
-            print(f"Firebase Save Error: {e}")
-
-upload_temp = {}
-user_temp_ref = {}
-is_bot_active = True  # Bot On/Off Switch State
-
-def generate_promo_code():
-    chars = string.ascii_uppercase + string.digits
-    while True:
-        code = ''.join(random.choices(chars, k=6))
-        if code not in db.get("promo_code_map", {}):
-            return code
-
-TEXTS = {
-    "EN": {
-        "welcome": "👋 Welcome {name}!\n\n🌐 Choose Language:\n\n🔹 English for E\n🔸 Hindi for H\n🔸 Bengali for B",
-        "lang_set": "✅ Language set to English!",
-        "ask_promo": "🎁 Enter 6-digit Promo Code (or type 'SKIP' to bypass):",
-        "invalid_promo": "❌ Invalid Promo Code! Please enter a valid 6-digit code or type 'SKIP':",
-        "promo_applied": "🎉 Promo code applied! You received +5.4 IC welcome bonus!",
-        "login_success": "✅ Successfully logged in as {username}!",
-        "main_title": (
-            "💎 VIP PROJECTS\n"
-            "⚙️ VIP CONFIGS\n"
-            "⚡ INSTANT DELIVERY\n"
-            "🔒 SECURE PAYMENTS\n\n"
-            "────────────────────────\n\n"
-            "👤 USERNAME : {username}\n"
-            "🆔 ID : {user_id}\n"
-            "💰 BALANCE : {balance:.1f} IC\n"
-            "🔱 EXCHANGE RATE : ₹1 INR = 1.2 IC\n"
-            "💵 RATES: ₹10 = 12.0 IC | ₹20 = 24.0 IC\n\n"
-            "────────────────────────\n\n"
-            "🚀 TAP BUY PROJECT OR BUY CONFIG TO START!"
-        ),
-        "btn_buy_proj": "⭐ BUY PROJECT",
-        "btn_buy_files": "⭐ BUY CONFIG",
-        "btn_buy_mods": "⭐ BUY MOD APK'S",
-        "btn_add_bal": "💳 ADD BALANCE",
-        "btn_referral": "🎁 REFER & EARN",
-        "btn_orders": "📦 YOUR ORDERS",
-        "btn_channel": "📢 OFFICIAL CHANNEL",
-        "btn_support": "📞 CUSTOMER SUPPORT",
-        "btn_back": "⬅️ Back to Main Menu",
-        "no_items": "⚠️ No {category} available right now.",
-        "no_orders": "📦 You have not purchased any items yet.",
-        "orders_title": "📦 YOUR PURCHASED ORDERS:\nClick button below to re-download anytime!",
-        "item_not_found": "❌ Item not found!",
-        "not_enough_ic": "⚠️ You do not have enough IC balance!\nRequired: {price} IC | Your Balance: {balance:.1f} IC\n\nPlease add balance using the ADD BALANCE option.",
-        "buy_success": "🎉 PURCHASE SUCCESSFUL!\n\n📦 Item: {name}\n💰 Deducted: {price} IC\n📦 Remaining Balance: {new_balance:.1f} IC\n\n📁 File delivered below! (Auto-deletes in 15 mins)",
-        "add_bal_text": "💳 ADD BALANCE (MINIMUM ₹10 INR)\n\n🔱 Exchange Rate: ₹1 INR = 1.2 IC\n💵 RATES:\n• ₹10 INR = 12.0 IC\n• ₹20 INR = 24.0 IC\n📱 FamPay UPI ID: {upi}\n\n👉 Scan the QR Code or pay using the UPI ID (Min ₹10).\nAfter payment, send payment screenshot to admin for ic balance top-up!",
-        "support_text": "📞 CUSTOMER SUPPORT\n\nIf you have any questions or need help regarding payment or products, feel free to contact our admin below:\n\n👉 Admin Username: @{admin}",
-        "channel_text": "📢 OFFICIAL CHANNEL\n\nJoin our official channel for regular updates, free configs, and new projects:\n\n👉 Channel Link: {channel}",
-        "btn_chat_admin": "💬 Chat with Admin",
-        "btn_visit_channel": "📢 Visit Channel",
-        "pay_title": "💳 PAYMENT CHECKOUT (FAMPAY)\n\n📦 Item: {name}\n💰 Amount to Pay: {price} IC (₹{inr_price} INR)\n\n📱 FamPay UPI ID: {upi}\n\n👉 Scan the QR Code above or pay to the FamPay ID.\nAfter payment, send payment screenshot to admin for ic balance top-up!",
-        "btn_send_ss": "📞 SEND PAYMENT SCREENSHOT TO ADMIN"
-    },
-    "HI": {
-        "welcome": "👋 Swagat hai {name}!\n\n🌐 Bhasha Chunein:\n\n🔹 English for E\n🔸 Hindi for H\n🔸 Bengali for B",
-        "lang_set": "✅ Hindi (Hinglish) bhasha set ho gayi hai!",
-        "ask_promo": "🎁 6-Digit Promo Code bhejein (ya 'SKIP' likhein agar code nahi hai):",
-        "invalid_promo": "❌ Galat Promo Code! Sahi 6-digit code bhejein ya 'SKIP' likhein:",
-        "promo_applied": "🎉 Promo code apply ho gaya! Aapko +5.4 IC Welcome Bonus mila!",
-        "login_success": "✅ {username} ke roop me safal auto-login ho gaya!",
-        "main_title": (
-            "💎 VIP PROJECTS\n"
-            "⚙️ VIP CONFIGS\n"
-            "⚡ INSTANT DELIVERY\n"
-            "🔒 SECURE PAYMENTS\n\n"
-            "────────────────────────\n\n"
-            "👤 USERNAME : {username}\n"
-            "🆔 ID : {user_id}\n"
-            "💰 BALANCE : {balance:.1f} IC\n"
-            "🔱 EXCHANGE RATE : ₹1 INR = 1.2 IC\n"
-            "💵 RATES: ₹10 = 12.0 IC | ₹20 = 24.0 IC\n\n"
-            "────────────────────────\n\n"
-            "🚀 SHURU KARNE KE LIYE BUY PROJECT YA CONFIG DABAYEIN!"
-        ),
-        "btn_buy_proj": "⭐ BUY PROJECT",
-        "btn_buy_files": "⭐ BUY CONFIG",
-        "btn_buy_mods": "⭐ BUY MOD APK'S",
-        "btn_add_bal": "💳 ADD BALANCE",
-        "btn_referral": "🎁 REFER & EARN",
-        "btn_orders": "📦 YOUR ORDERS",
-        "btn_channel": "📢 OFFICIAL CHANNEL",
-        "btn_support": "📞 CUSTOMER SUPPORT",
-        "btn_back": "⬅️ Main Menu Par Wapas Jayein",
-        "no_items": "⚠️ Abhi koi {category} available nahi hai.",
-        "no_orders": "📦 Aapne abhi tak koi item kharida nahi hai.",
-        "orders_title": "📦 AAPKE KHAREDE GAYE ORDERS:\nKabhi bhi re-download karne ke liye niche button dabayein!",
-        "item_not_found": "❌ Item nahi mila!",
-        "not_enough_ic": "⚠️ Aapke paas paryapt IC balance nahi hai!\nChahiye: {price} IC | Aapka Balance: {balance:.1f} IC\n\nKripya ADD BALANCE option ka upyog karke balance add karein.",
-        "buy_success": "🎉 PURCHASE SUCCESSFUL!\n\n📦 Item: {name}\n💰 Cut Hua IC: {price} IC\n📦 Bacha Hua Balance: {new_balance:.1f} IC\n\nAapki file niche bhej di gayi hai! (15 minute me auto-delete ho jayegi)",
-        "add_bal_text": "💳 ADD BALANCE (MINIMUM ₹10 INR)\n\n🔱 Exchange Rate: ₹1 INR = 1.2 IC\n💵 RATES:\n• ₹10 INR = 12.0 IC\n• ₹20 INR = 24.0 IC\n📱 FamPay UPI ID: {upi}\n\n👉 Upar diya gaya QR code scan karein ya UPI ID par payment karein (Min ₹10).\nAfter payment, send payment screenshot to admin for ic balance top-up!",
-        "support_text": "📞 CUSTOMER SUPPORT\n\nAapko payment ya products se judi koi bhi samasya ho, aap niche diye gaye admin se sampark kar sakte hain:\n\n👉 Admin Username: @{admin}",
-        "channel_text": "📢 OFFICIAL CHANNEL\n\nRegular updates, free configs aur naye projects ke liye hamara official channel join karein:\n\n👉 Channel Link: {channel}",
-        "btn_chat_admin": "💬 Admin se baat karein",
-        "btn_visit_channel": "📢 Channel Dekhein",
-        "pay_title": "💳 PAYMENT CHECKOUT (FAMPAY)\n\n📦 Item: {name}\n💰 Amount to Pay: {price} IC (₹{inr_price} INR)\n\n📱 FamPay UPI ID: {upi}\n\n👉 Upar diya gaya QR code scan karein ya FamPay ID par payment karein.\nAfter payment, send payment screenshot to admin for ic balance top-up!",
-        "btn_send_ss": "📞 SEND PAYMENT SCREENSHOT TO ADMIN"
-    },
-    "BN": {
-        "welcome": "👋 Swagotom {name}!\n\n🌐 Bhasha selection korun:\n\n🔹 English for E\n🔸 Hindi for H\n🔸 Bengali for B",
-        "lang_set": "✅ Bangla (Banglish) bhasha set hoye geche!",
-        "ask_promo": "🎁 6-Digit Promo Code dain (ba 'SKIP' likhun):",
-        "invalid_promo": "❌ Bhul Promo Code! Sothik 6-digit code dain ba 'SKIP' likhun:",
-        "promo_applied": "🎉 Promo code apply hoye geche! Apni +5.4 IC Welcome Bonus peyechen!",
-        "login_success": "✅ {username} hisebe safolyo bhabe auto-login hoyeche!",
-        "main_title": (
+# --- MAIN ENTRY POINT ---
+if __name__ == '__main__':
+    keep_alive()
+    print("🚀 Bot is polling live...")
+    bot.infinity_polling(skip_pending=True)
+    "main_title": (
             "💎 VIP PROJECTS\n"
             "⚙️ VIP CONFIGS\n"
             "⚡ INSTANT DELIVERY\n"
