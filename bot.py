@@ -46,7 +46,7 @@ except Exception as e:
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Admin Username Configuration (Case-insensitive check)
+# Admin Username Configuration
 ADMIN_USERNAME = "ISHAN_XYZ"
 
 def is_admin(username):
@@ -62,14 +62,14 @@ def send_welcome(message):
     username = user.username if user.username else "NoUsername"
     
     # Save/Check user in Firebase
-    ref = db.reference(f'users/{user.id}')
+    ref = db.reference('users/' + str(user.id))
     user_data = ref.get()
     
     if not user_data:
         ref.set({
             'user_id': user.id,
             'username': username,
-            'ic_balance': 5.4, # Welcome bonus +5.4 IC
+            'ic_balance': 5.4,
             'referred_by': None
         })
     
@@ -81,13 +81,13 @@ def send_welcome(message):
     markup.add(b1, b2, b3, b4)
     
     welcome_text = (
-        f"🤖 **XYZ PREMIUM BOT** 🤖\n\n"
-        f"🔥 **PREMIUM DIGITAL BOT** 🔥\n\n"
-        f"📦 Premium Projects & Files\n"
-        f"⚡ Fast & Instant Delivery\n"
-        f"🟢 24/7 Hours Online Active\n"
-        f"💵 Easy & Secure Payment\n"
-        f"💰 Affordable Prices\n\n"
+        "🤖 **XYZ PREMIUM BOT** 🤖\n\n"
+        "🔥 **PREMIUM DIGITAL BOT** 🔥\n\n"
+        "📦 Premium Projects & Files\n"
+        "⚡ Fast & Instant Delivery\n"
+        "🟢 24/7 Hours Online Active\n"
+        "💵 Easy & Secure Payment\n"
+        "💰 Affordable Prices\n\n"
         f"Welcome @{username}! Choose an option below 👇"
     )
     bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=markup)
@@ -97,7 +97,7 @@ def handle_query(call):
     user_id = call.from_user.id
     
     if call.data == "wallet":
-        ref = db.reference(f'users/{user_id}')
+        ref = db.reference('users/' + str(user_id))
         user_data = ref.get()
         balance = user_data.get('ic_balance', 0.0) if user_data else 0.0
         
@@ -107,14 +107,13 @@ def handle_query(call):
         bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
         
     elif call.data == "referral":
-        # Promo code display only
         promo_code = f"XYZ{user_id}"
         text = (
-            f"🎁 **Referral & Promo Program**\n\n"
-            f"Share your exclusive Promo Code with friends to earn instant IC bonuses!\n\n"
+            "🎁 **Referral & Promo Program**\n\n"
+            "Share your exclusive Promo Code with friends to earn instant IC bonuses!\n\n"
             f"🏷️ **Your Promo Code:** `{promo_code}`\n\n"
-            f"✨ Welcome Bonus: +5.4 IC\n"
-            f"🚀 Instant Referral Bonus: +6.0 IC"
+            "✨ Welcome Bonus: +5.4 IC\n"
+            "🚀 Instant Referral Bonus: +6.0 IC"
         )
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="back_home"))
@@ -160,7 +159,7 @@ def admin_ic_handler(message):
         bot.reply_to(message, "⚠️ Invalid amount specified!")
         return
         
-    ref = db.reference(f'users/{target_user_id}')
+    ref = db.reference('users/' + str(target_user_id))
     user_data = ref.get()
     
     if not user_data:
@@ -184,88 +183,7 @@ if __name__ == '__main__':
     keep_alive()
     print("🚀 Bot is polling live...")
     bot.infinity_polling(skip_pending=True)
-{user.username}" if user.username else ""
-    user_id = user.id
-    banned_list = db.get("banned_users", [])
-    return (username.lower() in [str(b).lower() for b in banned_list]) or (user_id in banned_list) or (str(user_id) in banned_list)
-
-def schedule_file_deletion(chat_id, message_id):
-    def delete_msg():
-        time.sleep(900)
-        try:
-            bot.delete_message(chat_id, message_id)
-        except Exception:
-            pass
-    threading.Thread(target=delete_msg, daemon=True).start()
-
-# --- ADMIN COMMANDS ---
-
-@bot.message_handler(commands=['toggle_bot'])
-def admin_toggle_bot_command(message):
-    global is_bot_active
-    if not is_admin(message.from_user):
-        return bot.reply_to(message, f"❌ Access Denied! Admin username is set to @{ADMIN_USERNAME}.")
-    is_bot_active = not is_bot_active
-    status = "ONLINE & ACTIVE ✅" if is_bot_active else "OFFLINE / MAINTENANCE ❌"
-    bot.reply_to(message, f"🤖 Bot Status updated: {status}")
-
-@bot.message_handler(commands=['ic'])
-def admin_ic_command(message):
-    if not is_admin(message.from_user):
-        return bot.reply_to(message, "❌ Access Denied!")
-    
-    parts = message.text.strip().split()
-    if len(parts) != 3:
-        return bot.reply_to(message, "⚠️ Usage: /ic @username amount\nExample: /ic @BRUTALMOON 12.2")
-    
-    target_username = parts[1].strip()
-    if not target_username.startswith('@'):
-        target_username = '@' + target_username
-        
-    try:
-        amount = float(parts[2])
-    except ValueError:
-        return bot.reply_to(message, "⚠️ Invalid amount format! Enter numbers only.")
-    
-    target_user_key = None
-    for uid, uname in db.get("registered_users", {}).items():
-        if uname.lower() == target_username.lower():
-            target_user_key = uid
-            break
-            
-    if not target_user_key:
-        target_user_key = target_username.lower()
-        db.setdefault("registered_users", {})[target_user_key] = target_username
-
-    current_bal = float(db.get("user_balances", {}).get(target_user_key, 0.0))
-    new_bal = round(current_bal + amount, 1)
-    
-    db.setdefault("user_balances", {})[target_user_key] = new_bal
-    save_db()
-    
-    reply_text = f"✅ SUCCESS!\n\n👤 User: {target_username}\n➕ Added: {amount} IC\n💰 Total Balance: {new_bal:.1f} IC"
-    bot.reply_to(message, reply_text)
-
-@bot.message_handler(commands=['deduct', 'minus'])
-def admin_deduct_command(message):
-    if not is_admin(message.from_user):
-        return bot.reply_to(message, "❌ Access Denied!")
-    
-    parts = message.text.strip().split()
-    if len(parts) != 3:
-        return bot.reply_to(message, "⚠️ Usage: /deduct @username amount\nExample: /deduct @BRUTALMOON 10.0")
-    
-    target_username = parts[1].strip()
-    if not target_username.startswith('@'):
-        target_username = '@' + target_username
-        
-    try:
-        amount = float(parts[2])
-    except ValueError:
-        return bot.reply_to(message, "⚠️ Invalid amount format!")
-    
-    target_user_key = None
-    for uid, uname in db.get("registered_users", {}).items():
+ {}).items():
         if uname.lower() == target_username.lower():
             target_user_key = uid
             break
