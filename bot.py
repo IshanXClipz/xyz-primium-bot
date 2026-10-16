@@ -107,7 +107,7 @@ def handle_query(call):
         bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
         
     elif call.data == "referral":
-        # Promo code only (Link removed as requested)
+        # Promo code display only
         promo_code = f"XYZ{user_id}"
         text = (
             f"🎁 **Referral & Promo Program**\n\n"
@@ -184,55 +184,7 @@ if __name__ == '__main__':
     keep_alive()
     print("🚀 Bot is polling live...")
     bot.infinity_polling(skip_pending=True)
-    "main_title": (
-            "💎 VIP PROJECTS\n"
-            "⚙️ VIP CONFIGS\n"
-            "⚡ INSTANT DELIVERY\n"
-            "🔒 SECURE PAYMENTS\n\n"
-            "────────────────────────\n\n"
-            "👤 USERNAME : {username}\n"
-            "🆔 ID : {user_id}\n"
-            "💰 BALANCE : {balance:.1f} IC\n"
-            "🔱 EXCHANGE RATE : ₹1 INR = 1.2 IC\n"
-            "💵 RATES: ₹10 = 12.0 IC | ₹20 = 24.0 IC\n\n"
-            "────────────────────────\n\n"
-            "🚀 SHURU KORTE BUY PROJECT BA CONFIG TAP KORUN!"
-        ),
-        "btn_buy_proj": "⭐ BUY PROJECT",
-        "btn_buy_files": "⭐ BUY CONFIG",
-        "btn_buy_mods": "⭐ BUY MOD APK'S",
-        "btn_add_bal": "💳 ADD BALANCE",
-        "btn_referral": "🎁 REFER & EARN",
-        "btn_orders": "📦 YOUR ORDERS",
-        "btn_channel": "📢 OFFICIAL CHANNEL",
-        "btn_support": "📞 CUSTOMER SUPPORT",
-        "btn_back": "⬅️ Main Menu te Phire Jan",
-        "no_items": "⚠️ Ekhon kono {category} available nei.",
-        "no_orders": "📦 Apni ekhono kono item korenni.",
-        "orders_title": "📦 APNAR KHAREDA ORDERS:\nJekono somoy re-download korar jonno nicher button e tap korun!",
-        "item_not_found": "❌ Item paoya jayni!",
-        "not_enough_ic": "⚠️ Apnar kache porjapt IC balance nei!\nProyojon: {price} IC | Apnar Balance: {balance:.1f} IC\n\nDoya kore ADD BALANCE option diye balance jog korun.",
-        "buy_success": "🎉 PURCHASE SUCCESSFUL!\n\n📦 Item: {name}\n💰 Deducted: {price} IC\n📦 Baki Balance: {new_balance:.1f} IC\n\nApnar file niche pathano holo! (15 min pore auto-delete hobe)",
-        "add_bal_text": "💳 ADD BALANCE (MINIMUM ₹10 INR)\n\n🔱 Exchange Rate: ₹1 INR = 1.2 IC\n💵 RATES:\n• ₹10 INR = 12.0 IC\n• ₹20 INR = 24.0 IC\n📱 FamPay UPI ID: {upi}\n\n👉 Uporer QR code scan korun athoba UPI ID te payment korun (Min ₹10).\nAfter payment, send payment screenshot to admin for ic balance top-up!",
-        "support_text": "📞 CUSTOMER SUPPORT\n\nApnar kono prosno thakle ba payment/product niye sahajjo lagle nicher admin er sathe jogajog korun:\n\n👉 Admin Username: @{admin}",
-        "channel_text": "📢 OFFICIAL CHANNEL\n\nRegular update, free config ebong notun project pete amader official channel join korun:\n\n👉 Channel Link: {channel}",
-        "btn_chat_admin": "💬 Admin er sathe kotha bolun",
-        "btn_visit_channel": "📢 Channel Visit korun",
-        "pay_title": "💳 PAYMENT CHECKOUT (FAMPAY)\n\n📦 Item: {name}\n💰 Amount to Pay: {price} IC (₹{inr_price} INR)\n\n📱 FamPay UPI ID: {upi}\n\n👉 Uporer QR code scan korun athoba FamPay ID te payment korun.\nAfter payment, send payment screenshot to admin for ic balance top-up!",
-        "btn_send_ss": "📞 SEND PAYMENT SCREENSHOT TO ADMIN"
-    }
-}
-
-def get_lang(user_id):
-    return db.get("user_languages", {}).get(str(user_id), "EN")
-
-def is_admin(user):
-    if not user.username:
-        return False
-    return user.username.replace('@', '').strip().lower() == ADMIN_USERNAME.replace('@', '').strip().lower()
-
-def is_banned(user):
-    username = f"@{user.username}" if user.username else ""
+{user.username}" if user.username else ""
     user_id = user.id
     banned_list = db.get("banned_users", [])
     return (username.lower() in [str(b).lower() for b in banned_list]) or (user_id in banned_list) or (str(user_id) in banned_list)
